@@ -100,10 +100,29 @@ jobs:
           ECR_REPOSITORY: ${{ vars.ECR_REPOSITORY }}
           IMAGE_TAG: ${{ github.sha }}
         run: |
-          IMAGE_URI=$AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$ECR_REPOSITORY
-          docker build -t $IMAGE_URI:$IMAGE_TAG -t $IMAGE_URI:latest .
-          docker push $IMAGE_URI:$IMAGE_TAG
-          docker push $IMAGE_URI:latest
+          set -euo pipefail
+
+          AWS_ACCOUNT_ID_CLEAN="$(printf '%s' "$AWS_ACCOUNT_ID" | tr -d '\r\n')"
+          AWS_REGION_CLEAN="$(printf '%s' "$AWS_REGION" | tr -d '\r\n')"
+          ECR_REPOSITORY_CLEAN="$(printf '%s' "$ECR_REPOSITORY" | tr -d '\r\n')"
+          IMAGE_TAG_CLEAN="$(printf '%s' "$IMAGE_TAG" | tr -d '\r\n')"
+
+          test -n "$AWS_ACCOUNT_ID_CLEAN"
+          test -n "$AWS_REGION_CLEAN"
+          test -n "$ECR_REPOSITORY_CLEAN"
+          test -n "$IMAGE_TAG_CLEAN"
+
+          IMAGE_URI="$AWS_ACCOUNT_ID_CLEAN.dkr.ecr.$AWS_REGION_CLEAN.amazonaws.com/$ECR_REPOSITORY_CLEAN"
+
+          echo "Building image: $IMAGE_URI:$IMAGE_TAG_CLEAN"
+
+          docker build \
+            -t "$IMAGE_URI:$IMAGE_TAG_CLEAN" \
+            -t "$IMAGE_URI:latest" \
+            .
+
+          docker push "$IMAGE_URI:$IMAGE_TAG_CLEAN"
+          docker push "$IMAGE_URI:latest"
 
       - name: Force new ECS deployment
         run: |
